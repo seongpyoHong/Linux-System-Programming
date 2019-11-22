@@ -1,0 +1,64 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include "synclib.h"
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+#define	MY_ID		0
+#define	SHM_KEY		(0x9000 + 46)
+#define	SHM_SIZE	1024
+#define	SHM_MODE	(SHM_R | SHM_W | IPC_CREAT)
+
+int TELL_WAIT(void){
+	int shmid;
+	if((shmid = shmget(SHM_KEY,SHM_SIZE,SHM_MODE)) < 0){
+		perror("shmget");
+		exit(1);
+	}
+}
+
+//write from parent write fd to 
+void TELL_PARENT(char *ptr){
+	//write to parent write file descriptor
+	if (write((int*)ptr, "c", 1) != 1)  {
+		perror("write");
+		exit(1);
+	}
+}
+
+//read from child
+void WAIT_PARENT(char *ptr){
+	char	c;
+	//read from write file descriptor
+	if (read((int*)ptr, &c, 1) != 1)  {
+		perror("read");
+		exit(1);
+	}
+	if (c != 'p')  {
+		fprintf(stderr, "WAIT_PARENT: incorrect data");
+		exit(1);
+	}
+}
+
+//write from parent write file descriptor
+void TELL_CHILD(char *ptr) {
+	if (write((int*)ptr, "p", 1) != 1)  {
+		perror("write");
+		exit(1);
+	}
+}
+//read from pipe 
+void WAIT_CHILD(char *ptr) {
+	char	c;
+	//read from pipe to child read file descriptor
+	if (read((int*)ptr, &c, 1) != 1)  {
+		perror("read");
+		exit(1);
+	}
+	if (c != 'c')  {
+		fprintf(stderr, "WAIT_CHILD: incorrect data");
+		exit(1);
+	}
+}
